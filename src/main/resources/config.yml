@@ -21,6 +21,14 @@ chance:
 #  equipment: map of slot->material (slots: HAND, OFF_HAND, HEAD, CHEST, LEGS, FEET)
 #  commands: list of console commands to run (placeholders: %player%)
 #  fishing-xp: (double) overrides default AuraSkills Fishing XP for this creature when killed (falls back to auraskills.xp.default-per-creature if absent)
+#  drops: custom drops section (optional):
+#    replace-default: false (if true, vanilla drops are cleared)
+#    items: list entries in either map form or quick string:
+#      - material: DIAMOND
+#        min: 1
+#        max: 2
+#        chance: 0.25   # 25% chance
+#      - GOLD_NUGGET:2-5:0.5   # quick format MATERIAL[:min-max][:chance]
 #
 # Remove or add entries as you like.
 creatures:
@@ -36,14 +44,29 @@ creatures:
     type: DROWNED
     weight: 10
     fishing-xp: 400
+    drops:
+      replace-default: false
+      items:
+        - TRIDENT:1:0.05
+        - PRISMARINE_CRYSTALS:1-2:0.35
   - id: GUARDIAN
     type: GUARDIAN
     weight: 5
     fishing-xp: 500
+    drops:
+      replace-default: false
+      items:
+        - PRISMARINE_SHARD:1-3:0.7
+        - SPONGE:1:0.02
   - id: ELDER_GUARDIAN
     type: ELDER_GUARDIAN
     weight: 1
     fishing-xp: 1000
+    drops:
+      replace-default: true
+      items:
+        - SPONGE:1-2:1.0
+        - PRISMARINE_CRYSTALS:4-8:1.0
   - id: ELECTRIC_GUARDIAN
     type: GUARDIAN
     custom: true
@@ -56,6 +79,34 @@ creatures:
       - STRENGTH:1:600
     equipment:
       HAND: TRIDENT
+    drops:
+      replace-default: true
+      items:
+        - HEART_OF_THE_SEA:1:0.15
+        - PRISMARINE_CRYSTALS:6-12:1.0
+        - material: AIR # placeholder to allow command-only drop (ignored material)
+          command: "skills item give %player% SpeedsterBoots"
+          chance: 0.01
+          label: "Speedster Boots"
+  - id: ELECTRIC_DROWNED
+    type: DROWNED
+    custom: true
+    weight: 2
+    display-name: '&bElectric Drowned'
+    glowing: true
+    fishing-xp: 2200.0
+    potion-effects:
+      - SPEED:1:600
+      - STRENGTH:1:600
+    equipment:
+      HAND: TRIDENT
+    drops:
+      replace-default: false
+      items:
+        - material: AIR
+          command: "skills item give %player% SpeedsterBoots"
+          chance: 0.01
+          label: "Speedster Boots"
   - id: ARMORED_DROWNED
     type: DROWNED
     custom: true
@@ -69,6 +120,11 @@ creatures:
       FEET: IRON_BOOTS
     potion-effects:
       - DAMAGE_RESISTANCE:1:400
+    drops:
+      replace-default: false
+      items:
+        - GOLD_INGOT:1-3:0.4
+        - DIAMOND:1:0.05
 
 # Logging verbosity (INFO, DEBUG, NONE)
 logging: INFO
@@ -82,3 +138,4 @@ auraskills:
 
 messages:
   catch: '&bYou fished up a &e%creature%&b!'
+  rare-drop: '&6RARE DROP! &eYou obtained: &b%item%'

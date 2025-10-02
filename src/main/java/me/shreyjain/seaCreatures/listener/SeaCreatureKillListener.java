@@ -1,8 +1,6 @@
 package me.shreyjain.seaCreatures.listener;
 
 import me.shreyjain.seaCreatures.creature.SeaCreatureManager;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
@@ -17,9 +15,7 @@ public class SeaCreatureKillListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onDeath(EntityDeathEvent event) {
-        LivingEntity entity = event.getEntity();
-        Player killer = entity.getKiller();
-        if (killer == null) return;
-        manager.handleDeath(entity, killer);
+        // Delegate full event so manager can process custom drops and XP (handles killer null internally)
+        manager.handleDeath(event);
     }
 }

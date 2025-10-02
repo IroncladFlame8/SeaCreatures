@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write  # needed to create releases
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+            distribution: temurin
+            java-version: '21'
+            cache: maven
+
+      - name: Extract project version
+        id: get_version
+        run: |
+          VERSION=$(mvn -q -Dexec.skip=true help:evaluate -Dexpression=project.version -DforceStdout)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Project version: $VERSION"
+
+      - name: Build with Maven
+        run: mvn -B -DskipTests package
+
+      - name: Derive tag + metadata
+        id: meta
+        run: |
+          VERSION='${{ steps.get_version.outputs.version }}'
+          # Strip trailing -SNAPSHOT for the tag if present
+          BASE_TAG="v${VERSION/-SNAPSHOT/}"
+          PRERELEASE=false
+          if [[ "$VERSION" == *-SNAPSHOT ]]; then
+            PRERELEASE=true
+          fi
+          ARTIFACT="target/SeaCreatures-${VERSION}.jar"
+          if [ ! -f "$ARTIFACT" ]; then
+            echo "Artifact not found: $ARTIFACT" >&2
+            exit 1
+          fi
+          echo "tag=$BASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "artifact=$ARTIFACT" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+          echo "Computed tag: $BASE_TAG (prerelease=$PRERELEASE)"
+
+      - name: Install GitHub CLI
+        uses: cli/cli-action@v2
+
+      - name: Check if release already exists
+        id: exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG='${{ steps.meta.outputs.tag }}'
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release $TAG already exists. Skipping creation.";
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        if: steps.exists.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: SeaCreatures ${{ steps.get_version.outputs.version }}
+          draft: false
+          prerelease: ${{ steps.meta.outputs.prerelease }}
+          files: ${{ steps.meta.outputs.artifact }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "Version: ${{ steps.get_version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "Tag: ${{ steps.meta.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "Prerelease: ${{ steps.meta.outputs.prerelease }}" >> $GITHUB_STEP_SUMMARY
+          echo "Artifact: ${{ steps.meta.outputs.artifact }}" >> $GITHUB_STEP_SUMMARY
+

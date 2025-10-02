@@ -25,6 +25,8 @@ public class SeaCreatureDefinition {
     private final Set<String> biomes; // Uppercase names
     private final Set<String> worlds; // Exact world names
     private final double fishingXp; // AuraSkills fishing XP reward
+    private final List<Drop> drops; // Custom drops
+    private final boolean replaceDefaultDrops;
 
     public SeaCreatureDefinition(String id,
                                  EntityType type,
@@ -39,7 +41,9 @@ public class SeaCreatureDefinition {
                                  Integer maxY,
                                  Set<String> biomes,
                                  Set<String> worlds,
-                                 double fishingXp) {
+                                 double fishingXp,
+                                 List<Drop> drops,
+                                 boolean replaceDefaultDrops) {
         this.id = id;
         this.type = type;
         this.weight = weight <= 0 ? 1 : weight;
@@ -54,6 +58,8 @@ public class SeaCreatureDefinition {
         this.biomes = biomes;
         this.worlds = worlds;
         this.fishingXp = fishingXp;
+        this.drops = drops;
+        this.replaceDefaultDrops = replaceDefaultDrops;
     }
 
     public String getId() { return id; }
@@ -70,6 +76,32 @@ public class SeaCreatureDefinition {
     public Set<String> getBiomes() { return biomes; }
     public Set<String> getWorlds() { return worlds; }
     public double getFishingXp() { return fishingXp; }
+    public List<Drop> getDrops() { return drops; }
+    public boolean isReplaceDefaultDrops() { return replaceDefaultDrops; }
 
     public enum EquipmentSlotSimple { HAND, OFF_HAND, HEAD, CHEST, LEGS, FEET }
+
+    public static class Drop {
+        private final String material; // Bukkit Material name OR null if command drop
+        private final Integer min;
+        private final Integer max;
+        private final String command; // console command with %player% placeholder
+        private final double chance; // 0.0 - 1.0 probability
+        private final String label; // display label for messages
+        public Drop(String material, Integer min, Integer max, String command, double chance, String label) {
+            this.material = material;
+            this.min = min;
+            this.max = max;
+            this.command = command;
+            this.chance = Math.max(0.0, Math.min(1.0, chance));
+            this.label = label != null ? label : (material != null ? material : command);
+        }
+        public boolean isCommand() { return command != null; }
+        public String getMaterial() { return material; }
+        public int getMin() { return min == null ? 1 : min; }
+        public int getMax() { return max == null ? getMin() : Math.max(getMin(), max); }
+        public String getCommand() { return command; }
+        public double getChance() { return chance; }
+        public String getLabel() { return label; }
+    }
 }

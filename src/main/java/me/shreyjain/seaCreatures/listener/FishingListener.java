@@ -9,11 +9,13 @@ import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -51,11 +53,32 @@ public class FishingListener implements Listener {
 
         LivingEntity spawned = manager.spawn(spawnLoc, def, player);
         if (spawned != null) {
+            // Message
             String raw = def.getDisplayName() != null ? def.getDisplayName() : def.getType().name();
             String plain = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', raw));
             String msg = plugin.getConfig().getString("messages.catch", "&bYou fished up a &e%creature%&b!")
                     .replace("%creature%", plain);
             player.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
+
+            // Fling / pull the spawned creature toward the player to simulate reeling it in
+            try {
+                Location playerMid = player.getLocation().add(0, 0.5, 0);
+                Vector toPlayer = playerMid.toVector().subtract(spawned.getLocation().toVector());
+                double distance = toPlayer.length();
+                if (distance > 0.0001) {
+                    toPlayer.normalize();
+                    // Scale velocity: closer mobs get a gentle nudge, farther get a bit stronger pull; clamp max.
+                    double speed = Math.min(1.2, 0.35 + distance * 0.15); // tunable
+                    Vector velocity = toPlayer.multiply(speed);
+                    // Add upward arc so it "pops" out of water.
+                    velocity.setY(Math.min(0.9, Math.max(0.35, distance * 0.10)));
+                    spawned.setVelocity(velocity);
+                }
+                // Optional: aggro if it's a hostile mob so it moves toward the player after landing.
+                if (spawned instanceof Mob mob) {
+                    mob.setTarget(player);
+                }
+            } catch (Throwable ignored) { }
         }
     }
 }

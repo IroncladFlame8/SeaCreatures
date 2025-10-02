@@ -13,6 +13,7 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.*;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
@@ -38,7 +39,7 @@ public class SeaCreatureManager {
     private double defaultFishingXp; // default per creature if not overridden by "fishing-xp" in creature entry
     private double fishingLuckBonusPerLevel;
     private AuraSkillsApi auraSkillsApi;
-    private final Map<UUID, SeaCreatureDefinition> spawnedCreatures = new HashMap<>();
+    private final Map<UUID, SpawnedCreature> spawnedCreatures = new HashMap<>();
 
     public SeaCreatureManager(SeaCreatures plugin) { this.plugin = plugin; }
 
@@ -129,12 +130,51 @@ public class SeaCreatureManager {
             try { fishingXp = Double.parseDouble(String.valueOf(map.get("fishing-xp"))); } catch (Exception ignored) {}
         }
 
-        return new SeaCreatureDefinition(id, type, weight, custom, name, glowing, potionEffects, equipment, commands, minY, maxY, biomes, worlds, fishingXp);
+        // Parse drops
+        List<SeaCreatureDefinition.Drop> drops = new ArrayList<>();
+        boolean replaceDefaultDrops = false;
+        Object dropsRaw = map.get("drops");
+        if (dropsRaw instanceof Map<?,?> dropsMap) {
+            replaceDefaultDrops = asBool(dropsMap.get("replace-default"), false);
+            Object items = dropsMap.get("items");
+            if (items instanceof List<?> itemList) {
+                for (Object itemObj : itemList) {
+                    if (itemObj instanceof Map<?,?> im) {
+                        String material = im.containsKey("material") ? String.valueOf(im.get("material")) : null;
+                        String command = im.containsKey("command") ? String.valueOf(im.get("command")) : null;
+                        if (material == null && command == null) continue; // invalid
+                        int min = material != null ? asInt(im.get("min"), 1) : 1;
+                        int max = material != null ? asInt(im.get("max"), min) : 1;
+                        double chance = parseDouble(im.get("chance"), 1.0);
+                        String label = im.containsKey("label") ? String.valueOf(im.get("label")) : null;
+                        if (material != null) material = material.toUpperCase(Locale.ROOT);
+                        drops.add(new SeaCreatureDefinition.Drop(material, min, max, command, chance, label));
+                    } else if (itemObj != null) {
+                        // String quick format: MATERIAL[:min-max][:chance]
+                        String line = String.valueOf(itemObj).trim();
+                        if (!line.isEmpty()) {
+                            String matPart = line;
+                            int min = 1; int max = 1; double chance = 1.0;
+                            String[] segs = line.split(":");
+                            if (segs.length > 0) matPart = segs[0];
+                            if (segs.length > 1) {
+                                String[] range = segs[1].split("-");
+                                if (range.length == 2) { min = parseInt(range[0], 1); max = parseInt(range[1], min); } else { int v = parseInt(segs[1],1); min = v; max = v; }
+                            }
+                            if (segs.length > 2) chance = parseDouble(segs[2], 1.0);
+                            drops.add(new SeaCreatureDefinition.Drop(matPart.toUpperCase(Locale.ROOT), min, max, null, chance, null));
+                        }
+                    }
+                }
+            }
+        }
+        return new SeaCreatureDefinition(id, type, weight, custom, name, glowing, potionEffects, equipment, commands, minY, maxY, biomes, worlds, fishingXp, drops, replaceDefaultDrops);
     }
 
     private int asInt(Object o, int def) { return o instanceof Number n ? n.intValue() : parseInt(String.valueOf(o), def); }
     private boolean asBool(Object o, boolean def) { return o == null ? def : Boolean.parseBoolean(String.valueOf(o)); }
     private int parseInt(String s, int def) { try { return Integer.parseInt(s); } catch (Exception e) { return def; } }
+    private double parseDouble(Object o, double def){ if (o == null) return def; try { return Double.parseDouble(String.valueOf(o)); } catch (Exception e){ return def; } }
 
     private Set<String> toUpperSet(Object o) { if (!(o instanceof List<?> list)) return null; return list.stream().map(v -> v.toString().toUpperCase(Locale.ROOT)).collect(Collectors.toSet()); }
     private Set<String> toStringSet(Object o) { if (!(o instanceof List<?> list)) return null; return list.stream().map(Object::toString).collect(Collectors.toSet()); }
@@ -176,26 +216,66 @@ public class SeaCreatureManager {
             });
         }
         for (String cmd : def.getCommands()) { String finalCmd = cmd.replace("%player%", fisher.getName()); Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCmd); }
-        spawnedCreatures.put(living.getUniqueId(), def);
+        spawnedCreatures.put(living.getUniqueId(), new SpawnedCreature(def, fisher.getUniqueId()));
         log(Level.FINE, "Spawned sea creature id=" + def.getId() + " for " + fisher.getName());
         return living;
     }
 
-    public void handleDeath(Entity entity, Player killer) {
-        if (!auraEnabled || auraSkillsApi == null) return;
-        SeaCreatureDefinition def = spawnedCreatures.remove(entity.getUniqueId());
-        if (def == null) return; // not one of ours
-        if (killer == null) return;
-        try {
-            SkillsUser user = auraSkillsApi.getUser(killer.getUniqueId());
-            if (user != null) {
-                double xp = def.getFishingXp();
-                if (xp > 0) {
-                    user.addSkillXp(Skills.FISHING, xp);
-                    killer.sendMessage(ChatColor.GREEN + "+" + xp + " Fishing XP");
+    public void handleDeath(EntityDeathEvent event) {
+        LivingEntity entity = event.getEntity(); // was Entity
+        Player killer = entity.getKiller();
+        SpawnedCreature sc = spawnedCreatures.remove(entity.getUniqueId());
+        if (sc == null) return; // not managed creature
+        SeaCreatureDefinition def = sc.definition();
+
+        // Determine recipient early for messaging/commands
+        Player recipient = killer;
+        if (recipient == null) {
+            UUID owner = sc.owner();
+            if (owner != null) recipient = Bukkit.getPlayer(owner);
+        }
+
+        // Custom drops processing
+        List<SeaCreatureDefinition.Drop> customDrops = def.getDrops();
+        if (!customDrops.isEmpty()) {
+            if (def.isReplaceDefaultDrops()) {
+                event.getDrops().clear();
+            }
+            ThreadLocalRandom rng = ThreadLocalRandom.current();
+            for (SeaCreatureDefinition.Drop d : customDrops) {
+                if (rng.nextDouble() <= d.getChance()) {
+                    boolean rare = d.getChance() < 0.05; // <5%
+                    if (d.isCommand()) {
+                        if (recipient != null) {
+                            String cmd = d.getCommand().replace("%player%", recipient.getName());
+                            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                            if (rare && recipient.isOnline()) sendRareMessage(recipient, d.getLabel());
+                        }
+                    } else {
+                        int amount = d.getMin() == d.getMax() ? d.getMin() : rng.nextInt(d.getMin(), d.getMax() + 1);
+                        try {
+                            Material mat = Material.valueOf(d.getMaterial());
+                            if (amount > 0) event.getDrops().add(new ItemStack(mat, amount));
+                            if (rare && recipient != null && recipient.isOnline()) sendRareMessage(recipient, d.getLabel());
+                        } catch (Exception ignored) { }
+                    }
                 }
             }
-        } catch (Throwable ignored) { }
+        }
+
+        // XP awarding
+        if (auraEnabled && auraSkillsApi != null && recipient != null) {
+            try {
+                SkillsUser user = auraSkillsApi.getUser(recipient.getUniqueId());
+                if (user != null) {
+                    double xp = def.getFishingXp();
+                    if (xp > 0) {
+                        user.addSkillXp(Skills.FISHING, xp);
+                        recipient.sendMessage(ChatColor.GREEN + "+" + xp + " Fishing XP");
+                    }
+                }
+            } catch (Throwable ignored) { }
+        }
     }
 
     private void log(Level level, String msg) { if (logLevel == LogLevel.NONE) return; if (logLevel == LogLevel.INFO && level == Level.FINE) return; plugin.getLogger().log(level, msg); }
@@ -207,12 +287,20 @@ public class SeaCreatureManager {
             if (user == null) return 0.0;
             double statLevel = user.getStatLevel(Stats.LUCK);
             return statLevel * fishingLuckBonusPerLevel; // already percent units added before clamp
-        } catch (Throwable t) {
-            return 0.0;
-        }
+        } catch (Throwable t) { return 0.0; }
+    }
+
+    private void sendRareMessage(Player player, String label) {
+        try {
+            String template = plugin.getConfig().getString("messages.rare-drop", "&6RARE DROP! &eYou obtained: &b%item%");
+            String msg = template.replace("%item%", label == null ? "UNKNOWN" : label);
+            player.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
+        } catch (Throwable ignored) { }
     }
 
     enum LogLevel { INFO, DEBUG, NONE; static LogLevel from(String s){ try { return LogLevel.valueOf(s.toUpperCase(Locale.ROOT)); } catch (Exception e){ return INFO; } } }
 
     public boolean isAuraEnabled() { return auraEnabled; }
+
+    private record SpawnedCreature(SeaCreatureDefinition definition, UUID owner) {}
 }
