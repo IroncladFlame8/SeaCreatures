@@ -45,6 +45,7 @@ creatures:
 
 Field notes:
 - `weight`: relative weight in random selection; higher = more common.
+- `min-level`: minimum fishing level to fish up sea creature. 
 - `potion-effects`: `EFFECT:AMPLIFIER:DURATION_TICKS` (e.g. `SPEED:1:600`).
 - `equipment`: keys are one of `HAND, OFF_HAND, HEAD, CHEST, LEGS, FEET`. Values are Bukkit `Material` names.
 - `commands`: executed as console; `%player%` is replaced with the fisher's name.

@@ -14,6 +14,7 @@ public class SeaCreatureDefinition {
     private final String id;
     private final EntityType type;
     private final int weight;
+    private final int minLevel;
     private final boolean custom;
     private final String displayName; // legacy color codes supported
     private final boolean glowing;
@@ -31,6 +32,7 @@ public class SeaCreatureDefinition {
     public SeaCreatureDefinition(String id,
                                  EntityType type,
                                  int weight,
+                                 int minLevel,
                                  boolean custom,
                                  String displayName,
                                  boolean glowing,
@@ -47,6 +49,7 @@ public class SeaCreatureDefinition {
         this.id = id;
         this.type = type;
         this.weight = weight <= 0 ? 1 : weight;
+        this.minLevel = Math.max(minLevel, 0);
         this.custom = custom;
         this.displayName = displayName;
         this.glowing = glowing;
@@ -65,6 +68,7 @@ public class SeaCreatureDefinition {
     public String getId() { return id; }
     public EntityType getType() { return type; }
     public int getWeight() { return weight; }
+    public int getMinLevel() { return minLevel; }
     public boolean isCustom() { return custom; }
     public String getDisplayName() { return displayName; }
     public boolean isGlowing() { return glowing; }
