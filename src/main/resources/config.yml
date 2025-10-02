@@ -1,0 +1,84 @@
+# SeaCreatures configuration
+# Chance settings determine how often a hooked fish turns into a sea creature instead of normal loot.
+chance:
+  # Base percent chance (0-100) to convert a successful fish into a creature.
+  base-percent: 35.0
+  # Additional percent (0-100) added per Luck of the Sea enchant level on the rod.
+  per-luck-level-bonus: 2.5
+
+# List of possible sea creatures the player can fish up.
+# Each entry supports:
+#  id: unique string identifier (for logging / filtering)
+#  type: Bukkit EntityType name (required)
+#  weight: integer weight used for random selection (default 1)
+#  min-y/max-y: optional world height constraints for spawning (inclusive)
+#  biomes: optional list of biome names restricting spawn
+#  worlds: optional list of world names restricting spawn
+#  custom: true/false (if true you can specify extra customization below)
+#  display-name: colored name using & codes
+#  glowing: boolean
+#  potion-effects: list in the form EFFECT:AMPLIFIER:DURATION_TICKS
+#  equipment: map of slot->material (slots: HAND, OFF_HAND, HEAD, CHEST, LEGS, FEET)
+#  commands: list of console commands to run (placeholders: %player%)
+#  fishing-xp: (double) overrides default AuraSkills Fishing XP for this creature when killed (falls back to auraskills.xp.default-per-creature if absent)
+#
+# Remove or add entries as you like.
+creatures:
+  - id: COD
+    type: COD
+    weight: 30
+    fishing-xp: 250
+  - id: SALMON
+    type: SALMON
+    weight: 25
+    fishing-xp: 250
+  - id: DROWNED
+    type: DROWNED
+    weight: 10
+    fishing-xp: 400
+  - id: GUARDIAN
+    type: GUARDIAN
+    weight: 5
+    fishing-xp: 500
+  - id: ELDER_GUARDIAN
+    type: ELDER_GUARDIAN
+    weight: 1
+    fishing-xp: 1000
+  - id: ELECTRIC_GUARDIAN
+    type: GUARDIAN
+    custom: true
+    weight: 2
+    display-name: '&bElectric Guardian'
+    glowing: true
+    fishing-xp: 2500.0
+    potion-effects:
+      - SPEED:1:600
+      - STRENGTH:1:600
+    equipment:
+      HAND: TRIDENT
+  - id: ARMORED_DROWNED
+    type: DROWNED
+    custom: true
+    weight: 3
+    display-name: '&3Armored Drowned'
+    fishing-xp: 2000.0
+    equipment:
+      HAND: TRIDENT
+      CHEST: DIAMOND_CHESTPLATE
+      LEGS: IRON_LEGGINGS
+      FEET: IRON_BOOTS
+    potion-effects:
+      - DAMAGE_RESISTANCE:1:400
+
+# Logging verbosity (INFO, DEBUG, NONE)
+logging: INFO
+
+auraskills:
+  enabled: true
+  xp:
+    default-per-creature: 12.0
+  stats:
+    fishing-luck-bonus-per-level: 0.15 # extra percent chance per stat level (added to final chance, before clamp)
+
+messages:
+  catch: '&bYou fished up a &e%creature%&b!'

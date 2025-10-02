@@ -1,0 +1,22 @@
+name: SeaCreatures
+version: '1.0-SNAPSHOT'
+main: me.shreyjain.seaCreatures.SeaCreatures
+api-version: '1.21'
+load: STARTUP
+authors: [ Shrey Jain ]
+description: Fish up live sea creatures (vanilla & custom) instead of items
+website: https://shreyjain.me/
+softdepend: [AuraSkills]
+commands:
+  seacreatures:
+    description: SeaCreatures plugin commands
+    usage: /seacreatures reload
+    aliases: [ seacreature, seac, scfish ]
+    permission: seacreatures.command
+permissions:
+  seacreatures.command:
+    description: Use base SeaCreatures command
+    default: op
+  seacreatures.reload:
+    description: Reload SeaCreatures configuration
+    default: op
