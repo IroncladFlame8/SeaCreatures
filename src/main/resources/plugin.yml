@@ -1,5 +1,5 @@
 name: SeaCreatures
-version: '1.0-SNAPSHOT'
+version: '${project.version}'
 main: me.shreyjain.seaCreatures.SeaCreatures
 api-version: '1.21'
 load: STARTUP
