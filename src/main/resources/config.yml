@@ -11,6 +11,7 @@ chance:
 #  id: unique string identifier (for logging / filtering)
 #  type: Bukkit EntityType name (required)
 #  weight: integer weight used for random selection (default 1)
+#  min-level: integer for minimum fishing level required for sea creature (default 0)
 #  min-y/max-y: optional world height constraints for spawning (inclusive)
 #  biomes: optional list of biome names restricting spawn
 #  worlds: optional list of world names restricting spawn
@@ -43,6 +44,7 @@ creatures:
   - id: DROWNED
     type: DROWNED
     weight: 10
+    min-level: 3
     fishing-xp: 400
     drops:
       replace-default: false
@@ -52,6 +54,7 @@ creatures:
   - id: GUARDIAN
     type: GUARDIAN
     weight: 5
+    min-level: 3
     fishing-xp: 500
     drops:
       replace-default: false
@@ -61,6 +64,7 @@ creatures:
   - id: ELDER_GUARDIAN
     type: ELDER_GUARDIAN
     weight: 1
+    min-level: 5
     fishing-xp: 1000
     drops:
       replace-default: true
@@ -71,6 +75,7 @@ creatures:
     type: GUARDIAN
     custom: true
     weight: 2
+    min-level: 7
     display-name: '&bElectric Guardian'
     glowing: true
     fishing-xp: 2500.0
@@ -92,6 +97,7 @@ creatures:
     type: DROWNED
     custom: true
     weight: 2
+    min-level: 7
     display-name: '&bElectric Drowned'
     glowing: true
     fishing-xp: 2200.0
@@ -111,6 +117,7 @@ creatures:
     type: DROWNED
     custom: true
     weight: 3
+    min-level: 7
     display-name: '&3Armored Drowned'
     fishing-xp: 2000.0
     equipment:

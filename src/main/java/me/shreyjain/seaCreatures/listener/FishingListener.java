@@ -1,5 +1,8 @@
 package me.shreyjain.seaCreatures.listener;
 
+import dev.aurelium.auraskills.api.AuraSkillsApi;
+import dev.aurelium.auraskills.api.skill.Skills;
+import dev.aurelium.auraskills.api.user.SkillsUser;
 import me.shreyjain.seaCreatures.SeaCreatures;
 import me.shreyjain.seaCreatures.creature.SeaCreatureDefinition;
 import me.shreyjain.seaCreatures.creature.SeaCreatureManager;
@@ -33,6 +36,9 @@ public class FishingListener implements Listener {
     public void onFish(PlayerFishEvent event) {
         if (event.getState() != PlayerFishEvent.State.CAUGHT_FISH) return;
         Player player = event.getPlayer();
+        AuraSkillsApi skillsApi = AuraSkillsApi.get();
+        SkillsUser skillsUser = skillsApi.getUser(player.getUniqueId());
+        int userFishingLevel = skillsUser.getSkillLevel(Skills.FISHING);
 
         int luckLevel = 0;
         ItemStack rod = player.getInventory().getItemInMainHand();
@@ -45,7 +51,7 @@ public class FishingListener implements Listener {
         if (ThreadLocalRandom.current().nextDouble(100.0) > chance) return;
 
         Location spawnLoc = event.getHook().getLocation().clone();
-        SeaCreatureDefinition def = manager.pickRandom(spawnLoc);
+        SeaCreatureDefinition def = manager.pickRandom(spawnLoc, userFishingLevel);
         if (def == null) return;
 
         Entity caught = event.getCaught();
