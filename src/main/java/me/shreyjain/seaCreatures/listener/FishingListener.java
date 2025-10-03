@@ -36,9 +36,12 @@ public class FishingListener implements Listener {
     public void onFish(PlayerFishEvent event) {
         if (event.getState() != PlayerFishEvent.State.CAUGHT_FISH) return;
         Player player = event.getPlayer();
-        AuraSkillsApi skillsApi = AuraSkillsApi.get();
-        SkillsUser skillsUser = skillsApi.getUser(player.getUniqueId());
-        int userFishingLevel = skillsUser.getSkillLevel(Skills.FISHING);
+        int userFishingLevel = 0;
+        if (manager.isAuraEnabled()) {
+            AuraSkillsApi skillsApi = AuraSkillsApi.get();
+            SkillsUser skillsUser = skillsApi.getUser(player.getUniqueId());
+            userFishingLevel = skillsUser.getSkillLevel(Skills.FISHING);
+        }
 
         int luckLevel = 0;
         ItemStack rod = player.getInventory().getItemInMainHand();

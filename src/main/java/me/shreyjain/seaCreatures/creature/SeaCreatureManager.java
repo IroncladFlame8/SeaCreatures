@@ -194,6 +194,7 @@ public class SeaCreatureManager {
             if (d.getMaxY() != null && y > d.getMaxY()) return false;
             if (d.getWorlds() != null && !d.getWorlds().contains(world.getName())) return false;
             if (d.getBiomes() != null && !d.getBiomes().contains(biome.name().toUpperCase(Locale.ROOT))) return false;
+            if (!auraEnabled) return true; // Only place auraskills related conditions after
             if (d.getMinLevel() > fishingLevel) return false;
             return true;
         }).toList();
