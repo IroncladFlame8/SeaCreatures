@@ -6,7 +6,7 @@ load: STARTUP
 authors: [ Shrey Jain ]
 description: Fish up live sea creatures (vanilla & custom) instead of items
 website: https://shreyjain.me/
-softdepend: [AuraSkills]
+depend: [AuraSkills]
 commands:
   seacreatures:
     description: SeaCreatures plugin commands

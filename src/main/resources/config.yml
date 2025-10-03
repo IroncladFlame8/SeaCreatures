@@ -11,7 +11,7 @@ chance:
 #  id: unique string identifier (for logging / filtering)
 #  type: Bukkit EntityType name (required)
 #  weight: integer weight used for random selection (default 1)
-#  min-level: integer for minimum fishing level required for sea creature (default 0)
+#  min-level: integer for minimum fishing level required for sea creature (default 1)
 #  min-y/max-y: optional world height constraints for spawning (inclusive)
 #  biomes: optional list of biome names restricting spawn
 #  worlds: optional list of world names restricting spawn
