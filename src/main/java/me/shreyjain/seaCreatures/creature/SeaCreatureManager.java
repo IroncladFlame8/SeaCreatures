@@ -83,6 +83,7 @@ public class SeaCreatureManager {
         try { type = EntityType.valueOf(typeName.toUpperCase(Locale.ROOT)); }
         catch (Exception e) { log(Level.WARNING, "Unknown entity type '" + typeName + "' for id=" + id); return null; }
         int weight = asInt(map.get("weight"), 1);
+        int minLevel = asInt(map.get("min-level"), 1);
         boolean custom = asBool(map.get("custom"), false);
         String name = map.containsKey("display-name") ? String.valueOf(map.get("display-name")) : null;
         boolean glowing = asBool(map.get("glowing"), false);
@@ -168,7 +169,7 @@ public class SeaCreatureManager {
                 }
             }
         }
-        return new SeaCreatureDefinition(id, type, weight, custom, name, glowing, potionEffects, equipment, commands, minY, maxY, biomes, worlds, fishingXp, drops, replaceDefaultDrops);
+        return new SeaCreatureDefinition(id, type, weight, minLevel, custom, name, glowing, potionEffects, equipment, commands, minY, maxY, biomes, worlds, fishingXp, drops, replaceDefaultDrops);
     }
 
     private int asInt(Object o, int def) { return o instanceof Number n ? n.intValue() : parseInt(String.valueOf(o), def); }
@@ -183,7 +184,7 @@ public class SeaCreatureManager {
 
     public double computeChancePercent(int luckLevel) { double v = baseChancePercent + perLuckLevelBonus * luckLevel; return Math.max(0, Math.min(100, v)); }
 
-    public SeaCreatureDefinition pickRandom(Location loc) {
+    public SeaCreatureDefinition pickRandom(Location loc, int fishingLevel) {
         if (definitions.isEmpty()) return null;
         World world = loc.getWorld();
         int y = loc.getBlockY();
@@ -193,6 +194,7 @@ public class SeaCreatureManager {
             if (d.getMaxY() != null && y > d.getMaxY()) return false;
             if (d.getWorlds() != null && !d.getWorlds().contains(world.getName())) return false;
             if (d.getBiomes() != null && !d.getBiomes().contains(biome.name().toUpperCase(Locale.ROOT))) return false;
+            if (d.getMinLevel() > fishingLevel) return false;
             return true;
         }).toList();
         if (filtered.isEmpty()) return null;

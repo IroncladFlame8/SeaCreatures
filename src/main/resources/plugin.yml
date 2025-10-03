@@ -1,12 +1,12 @@
 name: SeaCreatures
-version: '1.0-SNAPSHOT'
+version: '${project.version}'
 main: me.shreyjain.seaCreatures.SeaCreatures
 api-version: '1.21'
 load: STARTUP
 authors: [ Shrey Jain ]
 description: Fish up live sea creatures (vanilla & custom) instead of items
 website: https://shreyjain.me/
-softdepend: [AuraSkills]
+depend: [AuraSkills]
 commands:
   seacreatures:
     description: SeaCreatures plugin commands
